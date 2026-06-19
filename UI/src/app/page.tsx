@@ -1,123 +1,28 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-
-type Job = {
-  internal_job_id: string;
-  source_platform: string;
-  company_name: string;
-  job_title: string;
-  location: string;
-  job_url: string;
-  salary: string;
-  hr_email: string;
-  cv_template_used: string | null;
-  status: string;
-  scraped_at: string | null;
-  applied_at: string | null;
-};
-
-type Profile = {
-  category: string;
-  label: string;
-  filename: string;
-  exists: boolean;
-  bytes: number;
-  updatedAt: string | null;
-};
-
-type Metrics = {
-  total?: number;
-  pending?: number;
-  matched?: number;
-  applied?: number;
-};
-
-const statusOptions = ['ALL', 'PENDING', 'MATCHED', 'APPLIED', 'REJECTED'];
-const categoryOptions = [
-  { value: 'tech', label: 'Software Development' },
-  { value: 'robotics', label: 'Robotics & AI' },
-  { value: 'education', label: 'Academic / Education' },
-];
-
-function formatDate(value: string | null) {
-  if (!value) {
-    return 'not given';
-  }
-
-  return new Intl.DateTimeFormat('en', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(new Date(value));
-}
-
-function formatBytes(value: number) {
-  if (!value) {
-    return '0 KB';
-  }
-
-  return `${Math.max(1, Math.round(value / 1024))} KB`;
-}
+import { error } from 'console';
+import { useState, useEffect } from 'react';
 
 export default function Dashboard() {
+  // React State Hooks: Think of these as variables that automatically
+  // redraw the webpage whenever their contents update.
   const [file, setFile] = useState<File | null>(null);
   const [category, setCategory] = useState('tech');
-  const [uploadStatus, setUploadStatus] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [metrics, setMetrics] = useState<Metrics>({});
-  const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('ALL');
-  const [isLoading, setIsLoading] = useState(true);
-  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
 
-  const loadDashboard = async () => {
-    setIsLoading(true);
-
-    const params = new URLSearchParams();
-    if (status !== 'ALL') params.set('status', status);
-    if (search.trim()) params.set('search', search.trim());
-
-    const [jobsRes, profilesRes] = await Promise.all([
-      fetch(`/api/jobs?${params.toString()}`, { cache: 'no-store' }),
-      fetch('/api/profiles', { cache: 'no-store' }),
-    ]);
-
-    const jobsData = await jobsRes.json();
-    const profilesData = await profilesRes.json();
-
-    if (!jobsRes.ok) {
-      throw new Error(jobsData.error || 'Failed to load jobs');
-    }
-
-    if (!profilesRes.ok) {
-      throw new Error(profilesData.error || 'Failed to load profiles');
-    }
-
-    setJobs(jobsData.jobs || []);
-    setMetrics(jobsData.metrics || {});
-    setProfiles(profilesData.profiles || []);
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    loadDashboard().catch((err) => {
-      setUploadStatus({ type: 'error', text: err.message });
-      setIsLoading(false);
-    });
-  }, [search, status]);
-
+  // Form handler for file submission to our Next.js API
   const handleUploadSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!file) return;
 
-    setIsUploading(true);
-    setUploadStatus(null);
-
+    setUploadStatus('Uploading...');
+    
+    // Package file parameters into standard browser FormData payload
     const formData = new FormData();
     formData.append('file', file);
     formData.append('category', category);
 
+    // Send HTTP POST request directly to our backend API route
     const res = await fetch('/api/upload', {
       method: 'POST',
       body: formData,
@@ -125,192 +30,72 @@ export default function Dashboard() {
 
     const data = await res.json();
     if (data.success) {
-      setUploadStatus({ type: 'success', text: data.message });
-      setFile(null);
-      await loadDashboard();
+      setUploadStatus(`Success: ${data.message}`);
     } else {
-      setUploadStatus({ type: 'error', text: data.error });
+      setUploadStatus(`Error: ${data.error}`);
     }
-
-    setIsUploading(false);
   };
 
   return (
-    <main className="shell">
-      <div className="workspace">
-        <header className="topbar">
-          <div>
-            <p className="eyebrow">Layer 2 Control Hub</p>
-            <h1>Auto-CV Knowledge Base</h1>
-            <p className="subtle">SQLite application tracker and Markdown master-CV storage.</p>
+    <main style={{ padding: '40px', fontFamily: 'sans-serif', maxWidth: '900px', margin: '0 auto' }}>
+      <h1>Auto-CV Automation Control Center</h1>
+      <p style={{ color: '#666' }}>Layer 2 Database & Profile Management System</p>
+
+      {/* SECTION 1: RESUME PROFILE MANAGER */}
+      <section style={{ border: '1px solid #ccc', padding: '20px', borderRadius: '8px', marginBottom: '30px' }}>
+        <h2>1. Knowledge Base Asset Manager</h2>
+        <form onSubmit={handleUploadSubmit}>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Select Profile Category:</label>
+            <select value={category} onChange={(e) => setCategory(e.target.value)} style={{ padding: '8px', width: '200px' }}>
+              <option value="tech">Software Development (Tech)</option>
+              <option value="robotics">Robotics & AI (Hardware/Control)</option>
+              <option value="education">Academic / Education</option>
+            </select>
           </div>
-          <div className="status-strip" aria-label="Application metrics">
-            <div className="metric">
-              <span>Tracked</span>
-              <strong>{metrics.total || 0}</strong>
-            </div>
-            <div className="metric">
-              <span>Pending</span>
-              <strong>{metrics.pending || 0}</strong>
-            </div>
-            <div className="metric">
-              <span>Applied</span>
-              <strong>{metrics.applied || 0}</strong>
-            </div>
+
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Upload Markdown (.md) File:</label>
+            <input 
+              type="file" 
+              accept=".md" 
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFile(e.target.files ? e.target.files[0] : null)} 
+              style={{ padding: '5px' }}
+            />
           </div>
-        </header>
 
-        <aside className="side-stack">
-          <section className="panel">
-            <div className="panel-inner">
-              <h2>Master CV Assets</h2>
-              <form className="upload-form" onSubmit={handleUploadSubmit}>
-                <div className="field">
-                  <label htmlFor="category">Track</label>
-                  <select id="category" value={category} onChange={(e) => setCategory(e.target.value)}>
-                    {categoryOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+          <button type="submit" style={{ padding: '10px 20px', background: '#0070f3', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+            Upload Master Template
+          </button>
+        </form>
+        {uploadStatus && <p style={{ marginTop: '10px', fontWeight: 'bold', color: '#0070f3' }}>{uploadStatus}</p>}
+      </section>
 
-                <div className="field">
-                  <label htmlFor="cv-file">Markdown file</label>
-                  <input
-                    id="cv-file"
-                    type="file"
-                    accept=".md,text/markdown,text/plain"
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFile(e.target.files ? e.target.files[0] : null)}
-                  />
-                </div>
-
-                <button className="primary-button" type="submit" disabled={!file || isUploading}>
-                  {isUploading ? 'Uploading...' : 'Upload Template'}
-                </button>
-              </form>
-              {uploadStatus && <p className={`alert ${uploadStatus.type}`}>{uploadStatus.text}</p>}
-            </div>
-          </section>
-
-          <section className="panel">
-            <div className="panel-inner">
-              <h2>Profile Tracks</h2>
-              <div className="profile-list">
-                {profiles.map((profile) => (
-                  <article className="profile-card" key={profile.category}>
-                    <header>
-                      <h3>{profile.label}</h3>
-                      <span className={`badge ${profile.exists ? '' : 'missing'}`}>
-                        {profile.exists ? 'Ready' : 'Missing'}
-                      </span>
-                    </header>
-                    <p>{profile.filename}</p>
-                    <p>
-                      {profile.exists
-                        ? `${formatBytes(profile.bytes)} · ${formatDate(profile.updatedAt)}`
-                        : 'Awaiting Markdown source'}
-                    </p>
-                  </article>
-                ))}
-              </div>
-            </div>
-          </section>
-        </aside>
-
-        <section className="main-stack">
-          <div className="panel">
-            <div className="panel-inner">
-              <div className="table-header">
-                <div>
-                  <h2>Live Vacancy Queue</h2>
-                  <p className="subtle">{isLoading ? 'Loading local queue...' : `${jobs.length} visible application records`}</p>
-                </div>
-                <button className="ghost-button" type="button" onClick={() => loadDashboard()}>
-                  Refresh
-                </button>
-              </div>
-
-              <div className="filters">
-                <input
-                  className="search"
-                  type="search"
-                  placeholder="Search company, role, location, contact"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-                <select value={status} onChange={(e) => setStatus(e.target.value)}>
-                  {statusOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {option}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  className="ghost-button"
-                  type="button"
-                  onClick={() => {
-                    setSearch('');
-                    setStatus('ALL');
-                  }}
-                >
-                  Clear
-                </button>
-              </div>
-
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Company</th>
-                      <th>Position</th>
-                      <th>Compensation</th>
-                      <th>HR Contact</th>
-                      <th>Status</th>
-                      <th>Source</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {jobs.length === 0 ? (
-                      <tr>
-                        <td className="empty-state" colSpan={6}>
-                          No application records in the local queue.
-                        </td>
-                      </tr>
-                    ) : (
-                      jobs.map((job) => (
-                        <tr key={job.internal_job_id}>
-                          <td className="company-cell">
-                            <strong>{job.company_name}</strong>
-                            <span>{job.location || 'not given'}</span>
-                          </td>
-                          <td className="role-cell">
-                            <strong>{job.job_title}</strong>
-                            <span>{job.internal_job_id}</span>
-                          </td>
-                          <td>{job.salary || 'not given'}</td>
-                          <td>{job.hr_email || 'not given'}</td>
-                          <td>
-                            <span className={`badge ${job.status === 'PENDING' ? 'pending' : ''}`}>
-                              {job.status}
-                            </span>
-                          </td>
-                          <td>
-                            <a className="job-link" href={job.job_url} target="_blank" rel="noreferrer">
-                              {job.source_platform || 'Source'}
-                            </a>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
+      {/* SECTION 2: APPLICATION TRACKER GRID HOLDER */}
+      <section style={{ border: '1px solid #ccc', padding: '20px', borderRadius: '8px' }}>
+        <h2>2. Live Vacancy Application Queue</h2>
+        <p style={{ fontSize: '14px', color: '#666' }}>This table displays jobs generated by Layer 1's Python scraping routines from your local SQLite instance.</p>
+        
+        {/* Placeholder table - when we link our jobs API route later, this maps out live rows */}
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '15px' }}>
+          <thead>
+            <tr style={{ background: '#f5f5f5', textAlign: 'left' }}>
+              <th style={{ padding: '10px', borderBottom: '2px solid #ddd' }}>Company</th>
+              <th style={{ padding: '10px', borderBottom: '2px solid #ddd' }}>Position</th>
+              <th style={{ padding: '10px', borderBottom: '2px solid #ddd' }}>Salary</th>
+              <th style={{ padding: '10px', borderBottom: '2px solid #ddd' }}>HR Contact</th>
+              <th style={{ padding: '10px', borderBottom: '2px solid #ddd' }}>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style={{ padding: '10px', borderBottom: '1px solid #eee' }} colSpan={5}>
+                Ready to link. Running your python scraper will pipe jobs straight into this interface view container.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
     </main>
   );
 }

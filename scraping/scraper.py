@@ -44,8 +44,6 @@ def extract_deep_details_from_html(html_content: str, fallback_id: str) -> tuple
     hr_email = "not given"
     email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
     found_emails = re.findall(email_pattern, html_content)
-    print(found_emails)
-
     
     if found_emails:
         # Filter out common tracking domains, libraries, or system addresses that aren't real HR contacts
