@@ -1,1 +1,29 @@
 .DS_Store
+jobs_single_line.csv
+scraped_jobs.csv
+# Dependency Directories
+node_modules/
+.pnp
+.pnp.js
+
+# Next.js Build Outputs
+.next/
+out/
+build/
+
+# Local Storage Database Files (Do not upload your SQLite DB or private CVs)
+storage/
+storage/master_cvs/
+
+# Python Environments & Caches
+__pycache__/
+*.pyc
+.env
+.venv
+env/
+venv/
+.pytest_cache/
+
+# Operating System Garbage Files
+.DS_Store
+Thumbs.db

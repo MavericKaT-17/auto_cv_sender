@@ -44,6 +44,8 @@ def extract_deep_details_from_html(html_content: str, fallback_id: str) -> tuple
     hr_email = "not given"
     email_pattern = r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
     found_emails = re.findall(email_pattern, html_content)
+    print(found_emails)
+
     
     if found_emails:
         # Filter out common tracking domains, libraries, or system addresses that aren't real HR contacts
@@ -192,20 +194,7 @@ def clean_job_text(raw_text: str) -> str:
     # This prevents sentences from combining into one giant block while stripping excessive spacing.
     lines = [line.strip() for line in cleaned.split('\n')]
     
-    # Reconstruct the body text, allowing only up to one blank row separating structural text blocks
-    cleaned_paragraphs = []
-    for line in lines:
-        if line:
-            cleaned_paragraphs.append(line)
-        elif cleaned_paragraphs and cleaned_paragraphs[-1] != "":
-            # Insert a clean single paragraph gap placeholder
-            cleaned_paragraphs.append("") 
-            
-    # Remove any trailing empty entries at the very end of the array sequence
-    if cleaned_paragraphs and cleaned_paragraphs[-1] == "":
-        cleaned_paragraphs.pop()
-        
-    return "\n".join(cleaned_paragraphs)
+    return "\n".join(lines)
 
 # ==========================================
 # FILE WRITER EXECUTOR
